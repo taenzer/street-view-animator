@@ -1,0 +1,17 @@
+html, body { height: 100%; margin: 0; }
+#pano { position: fixed; inset: 0; }
+#ui { position: fixed; right: 16px; top: 16px; width: 280px; background: rgba(20,20,20,.85); color: #fff; border-radius: 12px; padding: 12px; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; box-shadow: 0 8px 24px rgba(0,0,0,.35); backdrop-filter: blur(6px); z-index: 10; }
+#ui h3 { margin: 0 0 8px; font-size: 14px; letter-spacing: .2px; }
+.row { display: flex; gap: 8px; align-items: center; margin: 8px 0; }
+button, input { height: 32px; border-radius: 8px; border: 1px solid rgba(255,255,255,.15); background: rgba(255,255,255,.08); color: #fff; padding: 0 10px; font-size: 13px; }
+button { cursor: pointer; }
+button:disabled { opacity: .55; cursor: not-allowed; }
+.small { font-size: 12px; opacity: .9; }
+
+
+/* Attribution sichtbar lassen – wichtig für ToS */
+.gm-style-cc { opacity: 1 !important; }
+
+
+/* Sämtliche bedienbaren UI‑Kontrollen aus, wir steuern selbst */
+.gm-fullscreen-control, .gm-svpc, .gm-bundled-control, .gm-bundled-control-on-bottom, .gm-style-mtc, .gm-svpc img, .gm-svpc div { display: none !important; }

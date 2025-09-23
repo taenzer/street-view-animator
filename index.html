@@ -1,0 +1,75 @@
+<!doctype html> 
+<html lang="de">
+    <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Google Street View Animator</title>
+    <link rel="stylesheet" href="style.css" />
+    </head>
+    <body>
+        <div id="pano" style="width: 100%; height: 100vh;"></div>
+        <div id="ui">
+            <h3>Google Street View Animator</h3>
+            <div class="row">
+                <button id="btnA">Start setzen</button>
+                <button id="btnB" disabled>Ende setzen</button>
+            </div>
+            <div class="row">
+                <label>Dauer (ms)
+                <input id="dur" type="number" min="200" step="100" value="10000" />
+                </label>
+                <button id="play" disabled>Abspielen</button>
+            </div>
+            <div class="row">
+                <label>Kurve
+                    <select id="ease">
+                        <option value="linear">Linear</option>
+                        <option value="easeInOutSine" selected>EaseInOutSine</option>
+                        <option value="easeInOutQuad">EaseInOutQuad</option>
+                        <option value="easeInOutCubic">EaseInOutCubic</option>
+                        <option value="easeInOutQuart">EaseInOutQuart</option>
+                        <option value="easeInOutQuint">EaseInOutQuint</option>
+                        <option value="easeInOutExpo">EaseInOutExpo</option>
+                        <option value="easeInOutCirc">EaseInOutCirc</option>
+                        <option value="easeFastLongTail">EaseFastLongTail</option>
+
+                    </select>
+                </label>
+
+            </div>
+            <div class="row small">
+                <label><input id="clickToGo" type="checkbox" /> Click‑to‑Go aktiv</label>
+                <label><input id="linksCtrl" type="checkbox" /> Links‑Pfeile anzeigen</label>
+            </div>
+            <div class="row">
+                <input id="url" type="text" placeholder="https://maps.google.com/... oder https://maps.app.goo.gl/..." style="flex:1" />
+                <button id="goUrl">Go URL</button>
+            </div>
+            <div class="small">Unterstützt @lat,lng, q=lat,lng, viewpoint=, ll=, cbll=, center= sowie !3d…!4d…. Street‑View Heading/Pitch aus heading= und pitch= werden übernommen.</div>
+            <details>
+                <summary>Benutzerdefinierte Startposition</summary>
+                <div>
+                    <p style="display: flex; flex-direction: column;" class="small">
+                        <label for="lat">Längengrad</label>
+                        <input id="lat" type="number" step="0.000001" value="52.516275" />
+                    </p>
+                    <p style="display: flex; flex-direction: column;" class="small">
+                        <label for="lng">Breitengrad</label>
+                        <input id="lng" type="number" step="0.000001" value="13.377704" />
+                    </p>
+                    <button id="go">Go</button>
+                </div>
+            </details>
+
+            <details class="small"><summary>API‑Key</summary>
+                <div class="row">
+                    <button id="resetKey">API‑Key zurücksetzen</button>
+                </div>
+                <div class="small">Beim ersten Start wirst du nach dem Key gefragt. Mit diesem Button kannst du ihn zurücksetzen (Seite neu lädt dann erneut und fragt nach einem Key).</div>
+            </details>
+
+
+        <script src="api-key.js"></script>
+        <script src="app.js"></script>
+    </body>
+</html>
