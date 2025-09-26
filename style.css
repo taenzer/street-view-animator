@@ -94,3 +94,7 @@ button:disabled {
 .gm-svpc div {
     display: none !important;
 }
+
+#recStart{
+    width: 100%;
+}

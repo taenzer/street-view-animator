@@ -2,7 +2,10 @@
     var pano = null;
     var ui = $('#ui');
 
-    var S = { a: null, b: null, duration: 4000, easing: 'easeInOutSine', animating: false };
+    var S = { a: null, b: null, duration: 4000, easing: 'easeInOutSine', animating: false, recording: false };
+
+    // Aufnahme‑State
+    var REC = { stream: null, rec: null, chunks: [], lastBlob: null };
 
     // Easing‑Funktionen (0..1 → 0..1)
     var EASING = {
@@ -136,6 +139,10 @@
                 S.animating = false;
 
                 setTimeout(() => (ui.style.display = 'block'), 2000);
+                if (S.recording) {
+                    S.recording = false;
+                    stopRecording($('#recStart'));
+                }
             }
         }
         window.requestAnimationFrame(frame);
@@ -248,6 +255,12 @@
         return document.querySelector(sel);
     }
 
+    function playAnimation() {
+        if (!(S.a && S.b)) return;
+        S.duration = parseInt(dur.value, 10) || 4000;
+        startAnimation(S.a, S.b, S.duration);
+    }
+
     function setupUI() {
         var btnA = $('#btnA');
         var btnB = $('#btnB');
@@ -261,6 +274,13 @@
         var ease = $('#ease');
         var url = $('#url');
         var goUrl = $('#goUrl');
+        var recStart = $('#recStart');
+
+        recStart.onclick = function () {
+            S.recording = true;
+            playAnimation();
+            startRecording(recStart);
+        };
 
         btnA.onclick = function () {
             if (!pano) return;
@@ -272,11 +292,7 @@
             S.b = getPOV();
             play.disabled = !(S.a && S.b);
         };
-        play.onclick = function () {
-            if (!(S.a && S.b)) return;
-            S.duration = parseInt(dur.value, 10) || 4000;
-            startAnimation(S.a, S.b, S.duration);
-        };
+        play.onclick = playAnimation;
 
         go.onclick = function () {
             var la = parseFloat(lat.value),
@@ -308,6 +324,88 @@
         ease.onchange = function () {
             S.easing = ease.value;
         };
+    }
+
+    // ===== Aufnahme (WebM) & MP4‑Transcode (ffmpeg.wasm) =====
+    function getCanvasStream() {
+        var canvas = document.querySelector('#pano canvas');
+        if (canvas && canvas.captureStream) return canvas.captureStream(60);
+        // Fallback: Tab/Window aufnehmen (erfordert Benutzerfreigabe)
+        return null;
+    }
+
+    function pickMimeType() {
+        var types = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+        for (var i = 0; i < types.length; i++) {
+            if (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(types[i]))
+                return types[i];
+        }
+        return 'video/webm';
+    }
+
+    async function startRecording(btnStart) {
+        if (REC.rec) return;
+        REC.chunks = [];
+        REC.lastBlob = null;
+        var stream = getCanvasStream();
+        if (!stream && navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
+            alert(
+                'Konnte Canvas-Stream nicht direkt abgreifen. Bitte wähle im folgenden Dialog den Tab/Fensterbereich aus.'
+            );
+            try {
+                stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 60 }, audio: false });
+            } catch (e) {
+                alert('Bildschirmaufnahme abgelehnt.');
+                return;
+            }
+        }
+        if (!stream) {
+            alert('Aufnahme nicht möglich.');
+            return;
+        }
+        REC.stream = stream;
+        var mime = pickMimeType();
+        try {
+            REC.rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 12000000 });
+        } catch (e) {
+            REC.rec = new MediaRecorder(stream);
+        }
+        REC.rec.ondataavailable = function (ev) {
+            if (ev.data && ev.data.size) REC.chunks.push(ev.data);
+        };
+        REC.rec.onstop = function () {
+            var blob = new Blob(REC.chunks, { type: REC.rec.mimeType || 'video/webm' });
+            REC.lastBlob = blob;
+            downloadBlob(blob, 'streetview-recording.webm');
+            safeStopStream();
+        };
+        REC.rec.start(100);
+        btnStart.disabled = true;
+    }
+
+    function stopRecording(btnStart) {
+        if (!REC.rec) return;
+        REC.rec.stop();
+        btnStart.disabled = false;
+    }
+
+    function safeStopStream() {
+        try {
+            REC.stream.getTracks().forEach(function (t) {
+                t.stop();
+            });
+        } catch (e) {}
+    }
+
+    function downloadBlob(blob, filename) {
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        setTimeout(function () {
+            URL.revokeObjectURL(url);
+        }, 1000);
     }
 
     function bootWhenReady() {
