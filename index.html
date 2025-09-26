@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Google Street View Animator</title>
     <link rel="stylesheet" href="style.css" />
+    <script src="/vendor/ffmpeg/ffmpeg-core.js"></script>
+
     </head>
     <body>
         <div id="pano"></div>
@@ -17,7 +19,7 @@
             <section>
                 <label>Dauer (ms)</label>
                 <div class="row">
-                    <input id="dur" type="number" min="200" step="100" value="10000" />
+                    <input id="dur" type="number" min="200" step="100" value="2000" />
                     <button id="play" disabled>Abspielen</button>
                 </div>
             </section>
