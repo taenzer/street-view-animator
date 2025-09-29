@@ -136,13 +136,11 @@
       } else {
         S.animating = false;
 
-        setTimeout(() => {
-          ui.style.display = "block";
-          if (S.recording) {
+        ui.style.display = "block";
+        if (S.recording) {
             S.recording = false;
             stopRecording($("#recStart"));
-          }
-        }, 2000);
+        }
       }
     }
     window.requestAnimationFrame(frame);
@@ -406,23 +404,6 @@
     }, 1000);
   }
 
-  // Lazy‑Load ffmpeg.wasm UMD‑Build
-  var ffmpegLoaded = false;
-  function loadFFmpeg() {
-    return new Promise(function (resolve, reject) {
-      if (ffmpegLoaded) return resolve();
-      var s = document.createElement("script");
-      s.src = "https://cdn.jsdelivr.net/npm/@ffmpeg.wasm/main@0.13.1/dist/index.global.min.js";
-      s.onload = function () {
-        ffmpegLoaded = true;
-        resolve();
-      };
-      s.onerror = function () {
-        reject(new Error("ffmpeg.wasm konnte nicht geladen werden."));
-      };
-      document.body.appendChild(s);
-    });
-  }
 
   async function transcodeToMp4(blob) {
     console.log("Transkodiere...");
@@ -436,38 +417,44 @@
     ffmpeg.on("log", ({ message }) => console.log("[ffmpeg]", message));
 
     await ffmpeg.load({
-      coreURL: "/vendor/ffmpeg/ffmpeg-core.js",
-      wasmURL: "/vendor/ffmpeg/ffmpeg-core.wasm",
-      // workerURL: "/vendor/ffmpeg/ffmpeg-core.worker.js",
+        coreURL: 'https://taenzer.github.io/street-view-animator/vendor/ffmpeg/ffmpeg-core.js',
+        wasmURL: 'https://taenzer.github.io/street-view-animator/vendor/ffmpeg/ffmpeg-core.wasm',
+        // workerURL: "/vendor/ffmpeg/ffmpeg-core.worker.js",
     });
 
     console.log("FFmpeg geladen!");
 
-    console.log(ffmpeg);
+    $('#overlay').style.display = "flex";
 
-    var buf = await blob.arrayBuffer();
     await ffmpeg.writeFile("in.webm", new Uint8Array(await blob.arrayBuffer()));
-    // H.264 MP4, kompatibel mit den meisten Playern
-    // await ffmpeg.exec([
-    //   "-y",
-    //   "-i",
-    //   "in.webm",
-    //   "-vf",
-    //   "pad=ceil(iw/2)*2:ceil(ih/2)*2",
-    //   "-c:v",
-    //   "libx264",
-    //   "-pix_fmt",
-    //   "yuv420p",
-    //   "-movflags",
-    //   "+faststart",
-    //   "-r",
-    //   "60",
-    //   "out.mp4",
-    // ]);
-    await ffmpeg.exec(["-y", "-i", "in.webm", "-c", "copy", "out.mkv"]);
-    const data = await ffmpeg.readFile("out.mkv");
-    const mp4 = new Blob([data.buffer], { type: "video/mkv" });
-    downloadBlob(mp4, "streetview-recording.mp4");
+    await ffmpeg.exec([
+        '-y',
+        '-i',
+        'in.webm',
+        '-vf',
+        'pad=ceil(iw/2)*2:ceil(ih/2)*2,fps=60', // gerade Maße + CFR
+        '-c:v',
+        'libx264',
+        '-preset',
+        'ultrafast',
+        '-crf',
+        '20',
+        '-pix_fmt',
+        'yuv420p',
+        '-c:a',
+        'aac',
+        '-b:a',
+        '192k',
+        '-ar',
+        '48000',
+        '-movflags',
+        '+faststart',
+        'out.mov',
+    ]);
+    const data = await ffmpeg.readFile("out.mov");
+    const mp4 = new Blob([data.buffer], { type: "video/mov" });
+    $('#overlay').style.display = 'none';
+    downloadBlob(mp4, "streetview-recording.mov");
   }
 
   function bootWhenReady() {
