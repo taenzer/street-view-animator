@@ -136,11 +136,13 @@
       } else {
         S.animating = false;
 
-        setTimeout(() => (ui.style.display = "block"), 2000);
-        if (S.recording) {
-          S.recording = false;
-          stopRecording($("#recStart"));
-        }
+        setTimeout(() => {
+          ui.style.display = "block";
+          if (S.recording) {
+            S.recording = false;
+            stopRecording($("#recStart"));
+          }
+        }, 2000);
       }
     }
     window.requestAnimationFrame(frame);
@@ -273,10 +275,10 @@
     var goUrl = $("#goUrl");
     var recStart = $("#recStart");
 
-    recStart.onclick = function () {
+    recStart.onclick = async function () {
       S.recording = true;
+      await startRecording(recStart);
       playAnimation();
-      startRecording(recStart);
     };
 
     btnA.onclick = function () {
@@ -423,41 +425,49 @@
   }
 
   async function transcodeToMp4(blob) {
+    console.log("Transkodiere...");
     if (!blob) {
       alert("Keine Aufnahme gefunden.");
       return false;
     }
 
     const { FFmpeg } = window.FFmpegWASM; // <- NICHT window.FFmpeg!
-    const ffmpeg = new FFmpeg();
+    const ffmpeg = new FFmpeg({ log: true });
+    ffmpeg.on("log", ({ message }) => console.log("[ffmpeg]", message));
 
     await ffmpeg.load({
       coreURL: "/vendor/ffmpeg/ffmpeg-core.js",
       wasmURL: "/vendor/ffmpeg/ffmpeg-core.wasm",
-      workerURL: "/vendor/ffmpeg/ffmpeg-core.worker.js",
+      // workerURL: "/vendor/ffmpeg/ffmpeg-core.worker.js",
     });
+
+    console.log("FFmpeg geladen!");
 
     console.log(ffmpeg);
 
     var buf = await blob.arrayBuffer();
-    await ff.FS("writeFile", "in.webm", new Uint8Array(buf));
+    await ffmpeg.writeFile("in.webm", new Uint8Array(await blob.arrayBuffer()));
     // H.264 MP4, kompatibel mit den meisten Playern
-    await ff.run(
-      "-i",
-      "in.webm",
-      "-c:v",
-      "libx264",
-      "-pix_fmt",
-      "yuv420p",
-      "-movflags",
-      "+faststart",
-      "-r",
-      "60",
-      "street-view-recording.mp4"
-    );
-    var out = ff.FS("readFile", "out.mp4");
-    var mp4Blob = new Blob([out.buffer], { type: "video/mp4" });
-    downloadBlob(mp4Blob, "streetview-recording.mp4");
+    // await ffmpeg.exec([
+    //   "-y",
+    //   "-i",
+    //   "in.webm",
+    //   "-vf",
+    //   "pad=ceil(iw/2)*2:ceil(ih/2)*2",
+    //   "-c:v",
+    //   "libx264",
+    //   "-pix_fmt",
+    //   "yuv420p",
+    //   "-movflags",
+    //   "+faststart",
+    //   "-r",
+    //   "60",
+    //   "out.mp4",
+    // ]);
+    await ffmpeg.exec(["-y", "-i", "in.webm", "-c", "copy", "out.mkv"]);
+    const data = await ffmpeg.readFile("out.mkv");
+    const mp4 = new Blob([data.buffer], { type: "video/mkv" });
+    downloadBlob(mp4, "streetview-recording.mp4");
   }
 
   function bootWhenReady() {
